@@ -1,75 +1,62 @@
-import React, { useState, useEffect } from "react"; 
-import { View, Text, StyleSheet, TextInput } from "react-native"; 
+import { useState, useEffect } from "react";
+import { View, Text, TextInput } from "react-native";
 import * as SecureStore from "expo-secure-store";
+
 import Botao from "../components/Botao";
 
 export default function HomeScreen({ navigation }) {
+  const [texto, setTexto] = useState("");
+  const [textoPersistido, setTextoPersistido] = useState("");
+  const [textoSalvoSemPersistencia, setTextoSalvoSemPersistencia] =
+    useState("");
 
-    const [texto, setTexto] = useState(""); 
-    const [textoPersistido, setTextoPersistido] = useState(""); 
-    const [textoSalvoSemPersistencia, setTextoSalvoSemPersistencia] = useState(""); 
-    useEffect(() => {
+  // Hook useEffect para carregar texto persistido ao montar o componente
+  // porque usa useEffect e nao o useState?
+  // O useEffect é usado para lidar com efeitos colaterais, como chamadas de API ou manipulação de eventos.
+  // O useState é usado para gerenciar o estado local do componente.
+  // O useEffect é chamado após o componente ser montado, enquanto o useState é usado para definir o estado inicial.
+  useEffect(() => {
+    SecureStore.getItemAsync("meuTexto").then(setTextoPersistido);
+  }, []);
 
-        const carregarTextoPersistido = async () => {
-            const textoSalvo = await SecureStore.getItemAsync("meuTexto"); 
-            if (textoSalvo) {
-                setTextoPersistido(textoSalvo); 
-            }
-        };
-        carregarTextoPersistido();
-    }, []); 
+  const salvarTexto = async () => {
+    if (texto.trim()) {
+      await SecureStore.setItemAsync("meuTexto", texto);
+      setTextoPersistido(texto);
+      setTextoSalvoSemPersistencia(texto);
+      setTexto("");
+    } else {
+      alert("Por favor, insira algo.");
+    }
+  };
 
-    const salvarTexto = async () => {
-        if (!texto.trim()) {
-            alert("Por favor, insira algo.");
-            return;
+  const limparTexto = async () => {
+    await SecureStore.deleteItemAsync("meuTexto");
+    setTextoPersistido("");
+    setTextoSalvoSemPersistencia("");
+    alert("Texto apagado!");
+  };
+
+  return (
+    <View>
+      <Text>Persistência e Navegação</Text>
+      <TextInput
+        placeholder="Digite algo"
+        value={texto}
+        onChangeText={setTexto}
+      />
+      <Text>Sem persistência: {textoSalvoSemPersistencia}</Text>
+      <Text>Texto persistido: {textoPersistido}</Text>
+      <Botao titulo="Salvar" onPress={salvarTexto} />
+      <Botao titulo="Limpar" onPress={limparTexto} />
+      <Botao
+        titulo="Detalhes"
+        onPress={() =>
+          navigation.navigate("Detalhes", {
+            textoNaoPersistido: textoSalvoSemPersistencia,
+          })
         }
-        await SecureStore.setItemAsync("meuTexto", texto); 
-        setTextoPersistido(texto); 
-        setTextoSalvoSemPersistencia(texto); 
-        setTexto(""); 
-    };
-
-    const limparTexto = async () => {
-        await SecureStore.deleteItemAsync("meuTexto"); 
-        setTextoPersistido("");
-        setTextoSalvoSemPersistencia(""); 
-        alert("Texto apagado da persistência!"); 
-    };
-
-    return (
-        <View style={styles.container}>
-            <Text style={styles.titulo}>Persistência e Navegação</Text>
-            <TextInput style={styles.input} placeholder="Digite algo" value={texto} onChangeText={setTexto} />
-            <Text style={[styles.texto, { color: "red" }]}>Sem persistência: {textoSalvoSemPersistencia || "Nenhum texto salvo"}</Text>
-            <Text style={[styles.texto, { color: "green" }]}>Texto persistido: {textoPersistido || "Nenhum texto salvo"}</Text>
-            <Botao titulo="Salvar" onPress={salvarTexto} cor="blue" />
-            <Botao titulo="Limpar" onPress={limparTexto} cor="red" />
-            <Botao titulo="Detalhes" onPress={() => navigation.navigate("Detalhes", { textoNaoPersistido: textoSalvoSemPersistencia })} cor="green" />
-        </View>
-    );
+      />
+    </View>
+  );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1, 
-        paddingVertical: 100, 
-        paddingHorizontal: 25, 
-        gap: 20, 
-    },
-    titulo: {
-        fontSize: 32, 
-        textAlign: "center", 
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: "gray", 
-        borderRadius: 8,
-        padding: 10, 
-        fontSize: 20, 
-    },
-    texto: {
-        fontSize: 20, 
-        textAlign: "center", 
-    },
-});
